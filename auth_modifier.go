@@ -30,6 +30,7 @@ type AuthModifier struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	logger     *zap.Logger
+	IndexPath  string // 存储索引文件的路径
 }
 
 func (AuthModifier) CaddyModule() caddy.ModuleInfo {
@@ -41,13 +42,21 @@ func (AuthModifier) CaddyModule() caddy.ModuleInfo {
 
 // UnmarshalCaddyfile 实现caddyfile.Unmarshaler接口
 func (a *AuthModifier) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	// 在这里处理Caddyfile中的配置，由于此插件不需要配置参数，所以留空
-	return nil
+    for d.Next() {
+        if !d.Args(&a.IndexPath) {
+            return d.ArgErr()
+        }
+    }
+    return nil
 }
 
 func (a *AuthModifier) Provision(ctx caddy.Context) error {
 	a.ctx, a.cancel = context.WithCancel(ctx.Context)
 	a.logger = ctx.Logger(a)
+	// 检查IndexPath是否已设置，如果没有设置，则使用默认路径
+    if len(a.IndexPath) == 0 {
+        a.IndexPath = "indexes.json" // 默认文件路径
+    }
 	a.loadIndexes()
 	// 设置定时任务，每30秒保存一次索引到文件
 	a.SaveTicker = time.NewTicker(30 * time.Second)
@@ -116,6 +125,21 @@ func (a *AuthModifier) updateIndex(url string, length int) {
 	a.Mutex.Unlock()
 }
 
+func (a *AuthModifier) loadIndexes() {
+	data, err := ioutil.ReadFile(a.IndexPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			a.logger.Error("Error reading indexes file", zap.Error(err))
+		}
+		a.Indexes = make(map[string]int)
+		return
+	}
+	if err := json.Unmarshal(data, &a.Indexes); err != nil {
+		a.logger.Error("Error parsing indexes file", zap.Error(err))
+		a.Indexes = make(map[string]int)
+	}
+}
+
 func (a *AuthModifier) saveIndexes() {
 	a.Mutex.Lock()
 	if !a.Changed {
@@ -131,26 +155,11 @@ func (a *AuthModifier) saveIndexes() {
 	a.Changed = false
 	a.Mutex.Unlock()
 
-	if err := ioutil.WriteFile("indexes.json", data, 0644); err != nil {
+	if err := ioutil.WriteFile(a.IndexPath, data, 0644); err != nil {
 		a.logger.Error("Error writing indexes to file", zap.Error(err))
 		a.Mutex.Lock()
 		a.Changed = true
 		a.Mutex.Unlock()
-	}
-}
-
-func (a *AuthModifier) loadIndexes() {
-	data, err := ioutil.ReadFile("indexes.json")
-	if err != nil {
-		if !os.IsNotExist(err) {
-			a.logger.Error("Error reading indexes file", zap.Error(err))
-		}
-		a.Indexes = make(map[string]int)
-		return
-	}
-	if err := json.Unmarshal(data, &a.Indexes); err != nil {
-		a.logger.Error("Error parsing indexes file", zap.Error(err))
-		a.Indexes = make(map[string]int)
 	}
 }
 
