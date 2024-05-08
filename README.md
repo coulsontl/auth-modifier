@@ -57,7 +57,7 @@ curl --request GET \
   --header 'x-goog-api-key: key1,key2,key3'
 
 # 示例2
-curl --location 'http://127.0.0.1:3002/api/openai/v1/chat/completions' \
+curl --location 'http://127.0.0.1:3002/v1/chat/completions' \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer key1,key2,key3' \
   --data '{
