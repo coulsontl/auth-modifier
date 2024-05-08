@@ -3,12 +3,13 @@ package auth_modifier
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+	"fmt"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -40,12 +41,25 @@ func (AuthModifier) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
+// ensureDir 确保给定路径的目录存在
+func ensureDir(path string) error {
+    // 获取路径中的目录部分
+    dir := filepath.Dir(path)
+    
+    // MkdirAll会创建目录，如果目录已经存在，不会返回错误
+    if err := os.MkdirAll(dir, 0755); err != nil {
+        return err
+    }
+    return nil
+}
+
 // UnmarshalCaddyfile 实现caddyfile.Unmarshaler接口
 func (a *AuthModifier) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
     for d.Next() {
         if !d.Args(&a.IndexPath) {
             return d.ArgErr()
         }
+		fmt.Println("get params IndexPath:", a.IndexPath)
     }
     return nil
 }
@@ -56,6 +70,10 @@ func (a *AuthModifier) Provision(ctx caddy.Context) error {
 	// 检查IndexPath是否已设置，如果没有设置，则使用默认路径
     if len(a.IndexPath) == 0 {
         a.IndexPath = "indexes.json" // 默认文件路径
+    }
+	// 确保文件路径中的目录存在
+    if err := ensureDir(a.IndexPath); err != nil {
+		a.logger.Error("Error mkdir", zap.Error(err))
     }
 	a.loadIndexes()
 	// 设置定时任务，每30秒保存一次索引到文件
@@ -126,7 +144,7 @@ func (a *AuthModifier) updateIndex(url string, length int) {
 }
 
 func (a *AuthModifier) loadIndexes() {
-	data, err := ioutil.ReadFile(a.IndexPath)
+	data, err := os.ReadFile(a.IndexPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			a.logger.Error("Error reading indexes file", zap.Error(err))
@@ -155,7 +173,7 @@ func (a *AuthModifier) saveIndexes() {
 	a.Changed = false
 	a.Mutex.Unlock()
 
-	if err := ioutil.WriteFile(a.IndexPath, data, 0644); err != nil {
+	if err := os.WriteFile(a.IndexPath, data, 0644); err != nil {
 		a.logger.Error("Error writing indexes to file", zap.Error(err))
 		a.Mutex.Lock()
 		a.Changed = true
