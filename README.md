@@ -31,7 +31,7 @@ xcaddy build --with github.com/coulsontl/auth-modifier
 }
 
 :3001 {
-    auth_modifier /etc/caddy/auth/index_3001.json
+    auth_modifier index_3001.json
     reverse_proxy "https://generativelanguage.googleapis.com" {
         import reverse_proxy_headers
         header_up Host "generativelanguage.googleapis.com"
@@ -39,14 +39,14 @@ xcaddy build --with github.com/coulsontl/auth-modifier
 }
 
 :3002 {
-    auth_modifier /etc/caddy/auth/index_3002.json
+    auth_modifier index_3002.json
     reverse_proxy "http://api.openai.com" {
         import reverse_proxy_headers
         header_up Host "api.openai.com"
     }
 }
 ```
-其中 /etc/caddy/auth/index_xx.json 是索引文件的路径，该文件用于存储 URL 与认证信息的索引映射。
+其中 index_xx.json 是索引文件的名称，该文件用于存储 URL 与认证信息的索引映射。
 
 ### 使用示例
 假设您有多个 API 密钥，需要根据不同的请求轮换使用，您可以在请求的 X-Goog-Api-Key 或 Authorization 插件会根据索引文件中记录的索引，选择合适的密钥进行请求。
