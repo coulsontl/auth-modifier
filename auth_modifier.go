@@ -3,7 +3,6 @@ package auth_modifier
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
