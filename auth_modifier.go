@@ -156,12 +156,13 @@ func (a *AuthModifier) loadIndexes() {
 
 // parseCaddyfile 用于解析Caddyfile并返回中间件处理器
 func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var m AuthModifier
-	err := m.UnmarshalCaddyfile(h.Dispenser)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+    var m AuthModifier
+    err := m.UnmarshalCaddyfile(h.Dispenser)
+    if err != nil {
+        return nil, err
+    }
+    // 返回 AuthModifier 的指针
+    return &m, nil
 }
 
 func main() {
