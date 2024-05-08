@@ -11,12 +11,15 @@ import (
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"go.uber.org/zap"
 )
 
 func init() {
 	caddy.RegisterModule(AuthModifier{})
+	httpcaddyfile.RegisterHandlerDirective("auth_modifier", parseCaddyfile)
 }
 
 type AuthModifier struct {
@@ -34,6 +37,12 @@ func (AuthModifier) CaddyModule() caddy.ModuleInfo {
 		ID:  "http.handlers.auth_modifier",
 		New: func() caddy.Module { return new(AuthModifier) },
 	}
+}
+
+// UnmarshalCaddyfile 实现caddyfile.Unmarshaler接口
+func (a *AuthModifier) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	// 在这里处理Caddyfile中的配置，由于此插件不需要配置参数，所以留空
+	return nil
 }
 
 func (a *AuthModifier) Provision(ctx caddy.Context) error {
@@ -143,6 +152,16 @@ func (a *AuthModifier) loadIndexes() {
 		a.logger.Error("Error parsing indexes file", zap.Error(err))
 		a.Indexes = make(map[string]int)
 	}
+}
+
+// parseCaddyfile 用于解析Caddyfile并返回中间件处理器
+func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var m AuthModifier
+	err := m.UnmarshalCaddyfile(h.Dispenser)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func main() {
