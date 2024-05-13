@@ -113,6 +113,8 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 		if len(tokens) > 0 {
 			selectedToken := tokens[index%len(tokens)]
 			r.Header.Set("Authorization", "Bearer "+selectedToken)
+
+			a.logger.Debug("Set Authorization", zap.String("Auth-Key", "Bearer "+selectedToken))
 			a.updateIndex(r.URL.Path, len(tokens))
 		}
 	} else if len(authHeader) > 0 {
@@ -120,6 +122,8 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 		if len(tokens) > 0 {
 			selectedToken := tokens[index%len(tokens)]
 			r.Header.Set("Authorization", selectedToken)
+
+			a.logger.Debug("Set Authorization", zap.String("Auth-Key", selectedToken))
 			a.updateIndex(r.URL.Path, len(tokens))
 		}
 	}
@@ -129,6 +133,8 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 		if len(apiKeys) > 0 {
 			selectedApiKey := apiKeys[index%len(apiKeys)]
 			r.Header.Set("X-Goog-Api-Key", selectedApiKey)
+
+			a.logger.Debug("Set X-Goog-Api-Key", zap.String("Auth-Key", selectedApiKey))
 			a.updateIndex(r.URL.Path, len(apiKeys))
 		}
 	}
