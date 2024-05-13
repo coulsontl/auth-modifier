@@ -100,7 +100,7 @@ func (a *AuthModifier) Cleanup() error {
 
 func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	a.Mutex.RLock()
-	index := a.Indexes[r.URL.String()]
+	index := a.Indexes[r.URL.Path]
 	a.Mutex.RUnlock()
 
 	authHeader := r.Header.Get("Authorization")
@@ -113,14 +113,14 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 		if len(tokens) > 0 {
 			selectedToken := tokens[index%len(tokens)]
 			r.Header.Set("Authorization", "Bearer "+selectedToken)
-			a.updateIndex(r.URL.String(), len(tokens))
+			a.updateIndex(r.URL.Path, len(tokens))
 		}
 	} else if len(authHeader) > 0 {
 		tokens := strings.Split(authHeader, ",")
 		if len(tokens) > 0 {
 			selectedToken := tokens[index%len(tokens)]
 			r.Header.Set("Authorization", selectedToken)
-			a.updateIndex(r.URL.String(), len(tokens))
+			a.updateIndex(r.URL.Path, len(tokens))
 		}
 	}
 
@@ -129,7 +129,7 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 		if len(apiKeys) > 0 {
 			selectedApiKey := apiKeys[index%len(apiKeys)]
 			r.Header.Set("X-Goog-Api-Key", selectedApiKey)
-			a.updateIndex(r.URL.String(), len(apiKeys))
+			a.updateIndex(r.URL.Path, len(apiKeys))
 		}
 	}
 
