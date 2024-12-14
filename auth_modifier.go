@@ -104,7 +104,8 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 	a.Mutex.RUnlock()
 
 	authHeader := r.Header.Get("Authorization")
-	apiKeyHeader := r.Header.Get("X-Goog-Api-Key")
+	googleApiKeyHeader := r.Header.Get("X-Goog-Api-Key")
+	claudeApiKeyHeader := r.Header.Get("x-api-key")
 	prefix := "bearer "
 
 	if len(authHeader) >= 7 && strings.HasPrefix(strings.ToLower(authHeader[:7]), prefix) {
@@ -128,13 +129,22 @@ func (a *AuthModifier) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 		}
 	}
 
-	if len(apiKeyHeader) > 0 {
-		apiKeys := strings.Split(apiKeyHeader, ",")
+	if len(googleApiKeyHeader) > 0 {
+		apiKeys := strings.Split(googleApiKeyHeader, ",")
 		if len(apiKeys) > 0 {
 			selectedApiKey := apiKeys[index%len(apiKeys)]
 			r.Header.Set("X-Goog-Api-Key", selectedApiKey)
 
 			a.logger.Debug("Set X-Goog-Api-Key", zap.String("Auth-Key", selectedApiKey))
+			a.updateIndex(r.URL.Path, len(apiKeys))
+		}
+	} else if len(claudeApiKeyHeader) > 0 {
+		apiKeys := strings.Split(claudeApiKeyHeader, ",")
+		if len(apiKeys) > 0 {
+			selectedApiKey := apiKeys[index%len(apiKeys)]
+			r.Header.Set("x-api-key", selectedApiKey)
+
+			a.logger.Debug("Set x-api-key", zap.String("Auth-Key", selectedApiKey))
 			a.updateIndex(r.URL.Path, len(apiKeys))
 		}
 	}
